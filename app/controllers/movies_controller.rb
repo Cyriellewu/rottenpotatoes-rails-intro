@@ -6,9 +6,23 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
+  # def index
+  #   @movies = Movie.all
+  # end
   def index
-    @movies = Movie.all
+    @all_ratings = Movie.all_ratings
+  
+    selected = if params[:ratings].present?
+                 params[:ratings].keys
+               else
+                 @all_ratings
+               end
+  
+    @ratings_to_show = selected
+    @movies = Movie.with_ratings(selected)
   end
+  
+  
 
   def new
     # default: render 'new' template
