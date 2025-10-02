@@ -12,28 +12,41 @@ class MoviesController < ApplicationController
   def index
     @all_ratings = Movie.all_ratings
 
+    incoming_ratings = params[:ratings]&.keys
+    incoming_sort    = params[:sort_by]
 
-    ratings_from_params = params[:ratings]&.keys
-    sort_from_params    = params[:sort_by]
+    saved_ratings = session[:ratings]
+    saved_sort    = session[:sort_by]
 
-    @ratings_to_show = ratings_from_params || session[:ratings] || @all_ratings
-    @sort_by         = sort_from_params    || session[:sort_by]
+    need_redirect = false
+    target_ratings = incoming_ratings
+    target_sort    = incoming_sort
+
+    if incoming_ratings.blank? && saved_ratings.present?
+      need_redirect = true
+      target_ratings = saved_ratings
+    end
+
+    if incoming_sort.blank? && saved_sort.present?
+      need_redirect = true
+      target_sort = saved_sort
+    end
+
+    if need_redirect
+      ratings_hash = target_ratings.to_h { |r| [r, '1'] }
+      redirect_to movies_path(sort_by: target_sort, ratings: ratings_hash) and return
+    end
+
+    @ratings_to_show = (incoming_ratings.presence || saved_ratings.presence || @all_ratings)
+    @sort_by         = (incoming_sort.presence    || saved_sort.presence    || nil)
 
 
     session[:ratings] = @ratings_to_show
     session[:sort_by] = @sort_by
 
- 
-    if params[:ratings].blank? || params[:sort_by].blank?
-      ratings_hash = @ratings_to_show.to_h { |r| [r, '1'] }  # {"G"=>"1", ...}
-      return redirect_to movies_path(ratings: ratings_hash, sort_by: @sort_by)
-    end
-
-
     @movies = Movie.with_ratings(@ratings_to_show)
     @movies = @movies.order(@sort_by) if @sort_by.present?
   end
-  
   
 
   def new
