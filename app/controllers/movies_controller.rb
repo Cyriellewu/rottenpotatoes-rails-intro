@@ -8,7 +8,6 @@ class MoviesController < ApplicationController
 
   # def index
   #   @movies = Movie.all
-  # end
   def index
     @all_ratings = Movie.all_ratings
   
@@ -17,10 +16,17 @@ class MoviesController < ApplicationController
                else
                  @all_ratings
                end
-  
     @ratings_to_show = selected
-    @movies = Movie.with_ratings(selected)
+  
+
+    allowed_sorts = %w[title release_date]
+    @sort_by = allowed_sorts.include?(params[:sort_by]) ? params[:sort_by] : nil
+  
+
+    scope = Movie.with_ratings(selected)
+    @movies = @sort_by.present? ? scope.order(@sort_by) : scope
   end
+  
   
   
 
