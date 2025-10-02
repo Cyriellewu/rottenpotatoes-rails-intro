@@ -11,16 +11,46 @@ class MoviesController < ApplicationController
   # end
   def index
     @all_ratings = Movie.all_ratings
-  
-    selected = if params[:ratings].present?
-                 params[:ratings].keys
-               else
-                 @all_ratings
-               end
-  
-    @ratings_to_show = selected
-    @movies = Movie.with_ratings(selected)
+
+    # 1) 取出当前应使用的筛选与排序(优先 params，其次 session，最后默认全选)
+    ratings = if params[:ratings].present?
+                params[:ratings].keys
+              elsif session[:ratings].present?
+                session[:ratings]
+              else
+                @all_ratings
+              end
+
+    sort_by = params[:sort_by].presence || session[:sort_by]
+
+    # 2) 如果 URL 里缺少这些参数，但我们有可用值 -> 重定向到带参数的规范 URL
+    need_redirect = false
+    canonical_params = {}
+
+    unless params[:ratings].present?
+      need_redirect = true
+      canonical_params[:ratings] = ratings.to_h { |r| [r, '1'] }
+    end
+
+    if sort_by.present? && !params[:sort_by].present?
+      need_redirect = true
+      canonical_params[:sort_by] = sort_by
+    end
+
+    return redirect_to movies_path(canonical_params) if need_redirect
+
+    # 3) 保存到 session，供下次返回使用
+    session[:ratings] = ratings
+    session[:sort_by] = sort_by
+
+    # 4) 供视图使用
+    @ratings_to_show = ratings
+    @sort_by         = sort_by
+    @movies          = Movie.with_ratings(ratings)
+    @movies          = @movies.order(@sort_by) if @sort_by.present?
   end
+
+
   
   
 
